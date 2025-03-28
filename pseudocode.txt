@@ -1,0 +1,154 @@
+# Preview
+
+ ______________________
+|          Pvm         |
+|______________________|
+| 0 |-----------x| Max |
+|______________________|
+| Teho      | xxxx     |
+|___________|__________|
+| Aika      | Päivitys |
+|___________|__________|
+| XX:XX.XX  | XX:XX.XX |
+|___________|__________|
+
+Pseudocode:
+
+    Main
+        
+        try 
+            maxPower = GetMaxPower()
+            PrintTable(maxPower)
+        end try
+        catch
+            print error message
+            return
+        end catch
+
+    PrintTable(maxPower)
+
+        currentPower, prevUpdatedEnd = GetCurrentPowerAndLastUpdateEnd()
+
+        if currentPower > maxPower then
+            maxPower = currentPower
+        end if
+
+        barSteps = 12
+
+        barSize = RoundToNearestIntegral(currentPower / maxPower * 12)
+
+        bar = '-' * barSize - 1 + "x" + ' ' * (barSteps - barSize)
+
+        barRow = "| 0 |" + bar + "| " + maxPower + " |"
+
+        tableWidth = barRow.Length > 23 ? barRow.Length : 23
+
+        sDate = current date as string
+        dateRow = "|" + ' ' * (tableWidth - 2 - sDate.Length) / 2 + sDate
+        dateRow += ' ' * tableWidth - dateRow.Length - 1
+
+        line = '_' * tableWidth - 2
+        tableTop = " " + line + " "
+        rowSeparator = "|" + line + "|"
+
+        middleLinePos = RoundToNearestIntegral(tablewidth / 2)
+
+        splitRowFormat = "| {{item1, {middleLinePos - 2}}}| {{item2, {tableWidth - (middleLinePos + 2)}}}|"
+        splitRowSeparator = splitRowFormat with "" and ""
+
+        powerRow = splitRowFormat with "Teho" and power
+        lableRow = splitRowFormat with "Aika" and "Päivitys"
+
+        clear the console
+
+        print
+            tableTop
+            dateRow
+            rowSeparator
+            powerRow
+            splitRowSeparator
+            labelRow
+            splitRowSeparator
+
+        nextUpdate = UpdateAndPrintTimes(prevUpdateEnd, splitRowFormat)
+
+        For each second do
+             if (nextUpdate <= 0) then
+                 PrintTable(currentPower)
+                 return
+             end if
+             
+             UpdateAndPrintTimes
+        end for
+
+    UpdateAndPrintTimes(prevUpdateEnd, splitRowFormat, splitRowSeparator)
+        time = current time to format XX:XX.XX
+        nextUpdate = (prevUpdateEnd + 3 mins 1 sec) - current: format XX:XX.XX
+
+        timeRow = splitRowFormat with time and nextUpdate
+        print timeRow and splitRowSeparator
+
+        return nextUpdate
+
+    GetCurrentPowerAndLastUpdateEnd()
+        url = API request url for latest data
+        json string = FetchFromUrl(url)
+
+        Parse json string to json object
+        power = object's "value" property
+        lastUpdateEnd = object's "endTime" property
+
+        return power, lastUpdateEnd
+
+    FetchFromUrl(url)
+        new http client
+        Add api key to client's request headers
+
+        response = fetch url using client
+
+        Return response
+
+    GetMaxPower()
+        save currentTime as RFC 3339 string
+        save time from month ago as RFC 3339 string
+        url = API request url with RFC 3339 time strings
+        json string = FetchFromUrl(url)
+
+        parse json string to json object
+        save "data" from json object
+
+        maxPower = 0
+
+        for each object in "data" do
+
+            if object's "value" > maxPower then
+                maxPower = object's "value"
+            end if
+
+        end for
+
+        return maxPower
+
+    PrintTable
+        try
+            print tableTopPortion
+            cts new tokensource
+            start tasks for cancellation by keystroke
+            await LoopInSecondIntervals(cts.token)
+        catch Cancel
+            return
+        catch other exceptions
+            print locations and e.message
+            throw 
+
+    LoopInSecondIntervals(token) 
+        while token has no cancel request
+            calc delay
+
+            if (nextUpdate <= 0)
+                PrintTable
+                return;
+
+            nextUpdate = UpdateAndPrintTimes()
+
+            Task.Delay(delay, token)
